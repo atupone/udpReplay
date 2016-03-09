@@ -1,0 +1,7 @@
+language: c
+before_script:
+  - autoreconf -i
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libpcap0.8-dev
+script: ./configure && make
