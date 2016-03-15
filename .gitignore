@@ -9,5 +9,8 @@ configure
 depcomp
 install-sh
 missing
-udpReplay
+udpreplay
 *.o
+.deps
+stamp-h1
+*.tar.gz

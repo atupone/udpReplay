@@ -1,6 +1,6 @@
-bin_PROGRAMS = udpReplay
+bin_PROGRAMS = udpreplay
 
-udpReplay_SOURCES = \
+udpreplay_SOURCES = \
 	udpReplay.c \
 	udpCallback.c \
 	udpCallback.h
