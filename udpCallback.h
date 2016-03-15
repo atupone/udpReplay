@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <pcap/pcap.h>
 
 extern struct sockaddr_in sockaddr;

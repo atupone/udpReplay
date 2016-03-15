@@ -1,12 +1,37 @@
 #include "udpCallback.h"
 
+#ifdef HAVE_STRING_H
 #include <string.h>
+#endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-
+#endif
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#ifdef HAVE_NETINET_IF_ETHER_H
+#include <netinet/if_ether.h>
+#endif
 #include <netinet/ip.h>
-#include <netinet/ether.h>
 #include <netinet/udp.h>
+#ifdef HAVE_NET_ETHERNET_H
+#include <net/ethernet.h>
+#endif
+#ifdef HAVE_SYS_ETHERNET_H
+#include <sys/ethernet.h>
+#endif
 
 static int udpSocket;
 struct sockaddr_in sockaddr;
@@ -74,7 +99,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   unsigned int caplen = h->caplen;
   unsigned int len    = h->len;
 
-  struct ethhdr eth_hdr;
+  struct ether_header eth_hdr;
   struct ip ip_hdr;
   struct udphdr udp_hdr;
 
@@ -101,15 +126,15 @@ static void callback_handler(u_char *user __attribute__((unused)),
     return;
 
   /* Copy the ethernet header */
-  if (len < ETH_HLEN)
+  if (len < sizeof(eth_hdr))
     return;
-  memcpy(&eth_hdr, bytes, ETH_HLEN);
-  bytes += ETH_HLEN;
-  len   -= ETH_HLEN;
+  memcpy(&eth_hdr, bytes, sizeof(eth_hdr));
+  bytes += sizeof(eth_hdr);
+  len   -= sizeof(eth_hdr);
 
   /* Discard non IP datagram */
-  protocol = ntohs(eth_hdr.h_proto);
-  if (protocol != ETH_P_IP)
+  protocol = ntohs(eth_hdr.ether_type);
+  if (protocol != ETHERTYPE_IP)
     return;
 
   /* Copy the IPv4 header */
@@ -138,7 +163,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   len   -= sizeof(udp_hdr);
 
   /* Discard uncomplete UDP datagram */
-  dataLen = ntohs(udp_hdr.len) - sizeof(udp_hdr);
+  dataLen = ntohs(udp_hdr.uh_ulen) - sizeof(udp_hdr);
   if (len < dataLen)
     return;
 
@@ -180,7 +205,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   /* Set destination */
   if (!dvalue)
     sockaddr.sin_addr.s_addr = ip_hdr.ip_dst.s_addr;
-  sockaddr.sin_port        = udp_hdr.dest;
+  sockaddr.sin_port        = udp_hdr.uh_dport;
 
   /* Send UDP data */
   byteCount = sendto(udpSocket, bytes, dataLen, 0,
