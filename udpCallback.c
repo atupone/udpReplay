@@ -32,9 +32,6 @@
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef HAVE_NETINET_IF_ETHER_H
-#include <netinet/if_ether.h>
-#endif
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #ifdef HAVE_NET_ETHERNET_H
@@ -174,7 +171,11 @@ static void callback_handler(u_char *user __attribute__((unused)),
   len   -= sizeof(udp_hdr);
 
   /* Discard uncomplete UDP datagram */
+#ifdef HAVE_STRUCT_UDPHDR_UH_ULEN
   dataLen = ntohs(udp_hdr.uh_ulen) - sizeof(udp_hdr);
+#else
+  dataLen = ntohs(udp_hdr.len) - sizeof(udp_hdr);
+#endif
   if (len < dataLen)
     return;
 
@@ -216,7 +217,11 @@ static void callback_handler(u_char *user __attribute__((unused)),
   /* Set destination */
   if (!dvalue)
     sockaddr.sin_addr.s_addr = ip_hdr.ip_dst.s_addr;
-  sockaddr.sin_port        = udp_hdr.uh_dport;
+#ifdef HAVE_STRUCT_UDPHDR_UH_DPORT
+  sockaddr.sin_port = udp_hdr.uh_dport;
+#else
+  sockaddr.sin_port = udp_hdr.dest;
+#endif
 
   /* Send UDP data */
   byteCount = sendto(udpSocket, bytes, dataLen, 0,

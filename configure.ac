@@ -1,6 +1,6 @@
 AC_INIT([udpReplay], [1.0.0])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror])
 AC_PROG_CC
 
 # For Solaris
@@ -8,21 +8,16 @@ AC_SEARCH_LIBS([gethostbyname], [nsl])
 AC_CHECK_LIB([socket], [connect])
 
 AC_CHECK_HEADERS([sys/socket.h])
-AC_CHECK_HEADERS([netinet/if_ether.h], [], [], [
-#include <stdio.h>
-#ifdef STDC_HEADERS
-# include <stdlib.h>
-# include <stddef.h>
-#else
-# ifdef HAVE_STDLIB_H
-#  include <stdlib.h>
-# endif
-#endif
-#ifdef HAVE_SYS_SOCKET_H
-# include <sys/socket.h>
-#endif
-])
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h net/ethernet.h sys/ethernet.h])
+AC_CHECK_MEMBERS([struct udphdr.uh_ulen,
+		  struct udphdr.uh_dport,
+		  struct udphdr.len,
+		  struct udphdr.dest], [], [], [
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
+#include <netinet/udp.h>
+])
 
 AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([memset])
