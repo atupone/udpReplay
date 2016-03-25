@@ -1,0 +1,3 @@
+Rewriting or dropping of udp frames based on source/destination address/port
+Specify functions to be applied to the data before sending it, maybe using plugins
+Send the udp from the same port as the destination (now it uses a random port)
