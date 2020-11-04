@@ -1,4 +1,5 @@
 bin_PROGRAMS = udpreplay
+man_MANS = udpReplay.1
 
 udpreplay_SOURCES = \
 	udpReplay.c \
