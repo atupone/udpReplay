@@ -26,6 +26,8 @@
 #include <arpa/inet.h>
 #endif
 
+#include <getopt.h>
+
 #include "udpCallback.h"
 
 int main(int argc, char* argv[])
@@ -34,23 +36,34 @@ int main(int argc, char* argv[])
   const char *pcapName;
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_t *pcap;
+  struct option long_options[] = {
+    {"step",  no_argument,       0, '1'},
+    {"flood", no_argument,       0, 'f'},
+    {"dest",  required_argument, 0, 'd'},
+    {"astx",  no_argument,       0, 4},
+    {0,       0,                 0, 0}
+  };
+  int option_index;
 
   dvalue = NULL;
   flood = 0;
   oneByOne = 0;
-  while ((c = getopt(argc, argv, "1fd:")) != -1)
+  while ((c = getopt_long(argc, argv, "1fd:", long_options, &option_index)) != -1)
     switch (c) {
+      case 4:
+        asterixTime = 1;
+        break;
       case '1':
-	oneByOne = 1;
-	break;
+        oneByOne = 1;
+        break;
       case 'f':
-	flood = 1;
-	break;
+        flood = 1;
+        break;
       case 'd':
-	dvalue = optarg;
-	break;
+        dvalue = optarg;
+        break;
       default:
-	break;
+        break;
     };
 
   if (oneByOne == 1 && flood == 1) {
@@ -90,3 +103,11 @@ int main(int argc, char* argv[])
 
   return 0;
 }
+
+// Local Variables: ***
+// mode: C ***
+// tab-width: 2 ***
+// c-basic-offset: 2 ***
+// indent-tabs-mode: nil ***
+// End: ***
+// ex: shiftwidth=2 tabstop=2

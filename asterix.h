@@ -15,11 +15,7 @@
 
 #include <pcap/pcap.h>
 
-extern struct sockaddr_in sockaddr;
-extern int rewriteDestination;
-extern char *dvalue;
-extern int flood;
-extern int oneByOne;
-extern int asterixTime;
-
-extern void replayAll(pcap_t *pcap);
+extern const u_char *fixAsterixTOD(
+                const u_char *bytes,
+                unsigned int dataLen,
+                unsigned int tod);

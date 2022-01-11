@@ -41,6 +41,8 @@
 #include <sys/ethernet.h>
 #endif
 
+#include "asterix.h"
+
 static int udpSocket;
 struct sockaddr_in sockaddr;
 static int start_loop = 1;
@@ -48,6 +50,7 @@ char  *dvalue;
 int    flood;
 int    oneByOne;
 long int countToFlood = 0;
+int    asterixTime = 0;
 
 void waitBeforeSending(struct timeval actual_delta)
 {
@@ -223,6 +226,15 @@ static void callback_handler(u_char *user __attribute__((unused)),
   sockaddr.sin_port = udp_hdr.dest;
 #endif
 
+  if (asterixTime)
+  {
+    unsigned int tod = now_tod.tv_sec;
+    tod %= 86400;
+    tod *= 128;
+    tod += now_tod.tv_usec * 128 / 1000000;
+    bytes = fixAsterixTOD(bytes, dataLen, tod);
+  }
+
   /* Send UDP data */
   byteCount = sendto(udpSocket, bytes, dataLen, 0,
       (struct sockaddr *)&sockaddr, sizeof(sockaddr));
@@ -249,3 +261,11 @@ void replayAll(pcap_t *pcap) {
     printf("Result (%d) from pcap_loop() not foreseen\n", result);
   }
 }
+
+// Local Variables: ***
+// mode: C ***
+// tab-width: 2 ***
+// c-basic-offset: 2 ***
+// indent-tabs-mode: nil ***
+// End: ***
+// ex: shiftwidth=2 tabstop=2
