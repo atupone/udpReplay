@@ -1,2 +1,4 @@
 # udpReplay
 Tool to replay udp datagram
+
+it is also capable of changing the Time of Day of the Asterix 34/48 messages to reflect the current time
