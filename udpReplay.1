@@ -1,24 +1,28 @@
-.TH UDPREPLAY 1
+.TH UDPREPLAY 1 2022-01-12 Linux
 .SH NAME
 udpReplay \- trasmit udp frame read from a pcap file
 .SH SYNOPSIS
 .B udpReplay
-[-1]
-[-f]
-[-d host]
+[-1|--step]
+[-f|--flood]
+[-d host|--dest host]
+[--astx]
 .IR pcapfile
 .SH DESCRIPTION
 .B udpReplay
 get the udp packets in a pcap file and sends them as udp datagram
 .SH OPTION
 .TP
-.BR -1
+.BR -1 | --step
 Send the datagram one by one waiting for input from console to send the next
 .TP
-.BR -f
+.BR -f | --flood
 Send the datagram as fast as it can
 .TP
-.BR -d\ host
+.BR --astx
+Adjust the Asterix Time Of Day to reflect the time the message is sent
+..TP
+.BR -d\ host | --dest\ host
 Send the datagram to the specified host. It this option is not present, data are sent to the original host as recorded in the pcap file
 .TP
 .BR file
