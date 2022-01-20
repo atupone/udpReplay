@@ -27,6 +27,7 @@
 #endif
 
 #include <getopt.h>
+#include <stdlib.h>
 
 #include "udpCallback.h"
 
@@ -41,15 +42,17 @@ int main(int argc, char* argv[])
     {"flood", no_argument,       0, 'f'},
     {"dest",  required_argument, 0, 'd'},
     {"astx",  no_argument,       0, 4},
+    {"mttl",  required_argument, 0, 1},
     {0,       0,                 0, 0}
   };
   int option_index;
 
-  dvalue = NULL;
-  flood = 0;
-  oneByOne = 0;
   while ((c = getopt_long(argc, argv, "1fd:", long_options, &option_index)) != -1)
     switch (c) {
+      case 1:
+        setMulticastTTL = 1;
+        multicastTTLValue = strtol(optarg, NULL, 0);
+        break;
       case 4:
         asterixTime = 1;
         break;

@@ -46,11 +46,13 @@
 static int udpSocket;
 struct sockaddr_in sockaddr;
 static int start_loop = 1;
-char  *dvalue;
-int    flood;
-int    oneByOne;
+char  *dvalue = NULL;
+int    flood = 0;
+int    oneByOne = 0;
 long int countToFlood = 0;
 int    asterixTime = 0;
+int    setMulticastTTL = 0;
+long   multicastTTLValue = 0;
 
 void waitBeforeSending(struct timeval actual_delta)
 {
@@ -250,6 +252,10 @@ void replayAll(pcap_t *pcap) {
   if (udpSocket == -1) {
     perror("UDP Socket failed");
     return;
+  }
+  if (setMulticastTTL) {
+    u_char ttl = multicastTTLValue;
+    setsockopt(udpSocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
   }
 
   result = pcap_loop(pcap, -1, callback_handler, NULL);

@@ -21,5 +21,7 @@ extern char *dvalue;
 extern int flood;
 extern int oneByOne;
 extern int asterixTime;
+extern int  setMulticastTTL;
+extern long multicastTTLValue;
 
 extern void replayAll(pcap_t *pcap);
