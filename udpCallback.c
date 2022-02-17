@@ -40,6 +40,7 @@
 #ifdef HAVE_SYS_ETHERNET_H
 #include <sys/ethernet.h>
 #endif
+#include <pcap/vlan.h>
 
 #include "asterix.h"
 
@@ -87,8 +88,8 @@ void waitBeforeSending(struct timeval actual_delta)
     if (useconds > 0) {
       int result = usleep(useconds);
       if (result != 0) {
-	perror("usleep Failed");
-	return;
+        perror("usleep Failed");
+        return;
       }
     }
   }
@@ -115,6 +116,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   struct ether_header eth_hdr;
   struct ip ip_hdr;
   struct udphdr udp_hdr;
+  struct vlan_tag vlan_hdr;
 
   uint16_t protocol;
 
@@ -145,8 +147,22 @@ static void callback_handler(u_char *user __attribute__((unused)),
   bytes += sizeof(eth_hdr);
   len   -= sizeof(eth_hdr);
 
-  /* Discard non IP datagram */
   protocol = ntohs(eth_hdr.ether_type);
+
+  /* Check for VLAN data */
+  if (protocol == ETHERTYPE_VLAN)
+  {
+    /* Copy the vlan header */
+    if (len < sizeof(vlan_hdr))
+      return;
+    memcpy(&vlan_hdr, bytes, sizeof(vlan_hdr));
+    bytes += sizeof(vlan_hdr);
+    len   -= sizeof(vlan_hdr);
+
+    protocol = ntohs(vlan_hdr.vlan_tci);
+  }
+
+  /* Discard non IP datagram */
   if (protocol != ETHERTYPE_IP)
     return;
 
@@ -194,14 +210,14 @@ static void callback_handler(u_char *user __attribute__((unused)),
       printf("Press <Enter> to send next datagram ->");
       sResult = fgets(s, sizeof(s), stdin);
       if (sResult == NULL)
-	return;
+        return;
       countToFlood = strtol(s, &endPtr, 0);
       if (endPtr == s)
-	countToFlood = 0;
+        countToFlood = 0;
       if (countToFlood > 0)
-	countToFlood--;
+        countToFlood--;
       else
-	countToFlood = 0;
+        countToFlood = 0;
     }
   } else {
     /* Getting actual time and pcap time */
