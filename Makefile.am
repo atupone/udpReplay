@@ -1,4 +1,4 @@
-bin_PROGRAMS = udpreplay
+bin_PROGRAMS = udpreplay atxDepack
 man_MANS = udpReplay.1
 
 udpreplay_SOURCES = \
@@ -7,6 +7,9 @@ udpreplay_SOURCES = \
 	udpCallback.h \
 	asterix.h \
 	asterix.c
+
+atxDepack_SOURCES = \
+	atxDepack.c
 
 AM_CPPFLAGS = -I.
 AM_CFLAGS = $(PCAP_CFLAGS) -Wall
