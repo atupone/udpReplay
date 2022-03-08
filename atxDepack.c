@@ -654,7 +654,7 @@ static void write_dump(u_char *pcapOutput, const struct pcap_pkthdr *h,
   temp += ipLen;
 
   memcpy(&new_udp_hdr, udp_hdr, sizeof(struct udphdr));
-  new_udp_hdr.uh_ulen = htons(udpLength);
+  new_udp_hdr.len = htons(udpLength);
 
   memcpy(temp, &new_udp_hdr, sizeof(struct udphdr));
   temp += sizeof(struct udphdr);

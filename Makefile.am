@@ -14,3 +14,5 @@ atxDepack_SOURCES = \
 AM_CPPFLAGS = -I.
 AM_CFLAGS = $(PCAP_CFLAGS) -Wall
 LDADD = $(PCAP_LIBS)
+
+EXTRA_DIST=udpReplay.1
