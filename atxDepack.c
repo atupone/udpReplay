@@ -35,13 +35,15 @@
 #include <netinet/udp.h>
 #include <pcap/vlan.h>
 #include <pcap/pcap.h>
+#include <pcap/sll.h>
 
 #include <getopt.h>
 #include <stdlib.h>
 
 static pcap_dumper_t *pcapOutput;
+int                   datalink;
 
-static u_char fspec[28];
+static u_char fspec[49];
 
 static unsigned int computeFSPEC(
     const u_char *bytes,
@@ -64,6 +66,681 @@ static unsigned int computeFSPEC(
       break;
   }
   return i + 1;
+}
+
+static unsigned int computeAsterix21Length(
+    const u_char *bytes,
+    unsigned int  dataLen)
+{
+  unsigned int currLen = 0;
+
+  if (fspec[0]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[1]) {
+    while (1) {
+      if (dataLen <= 0)
+        return currLen;
+      int cont = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+      if (!cont)
+        break;
+    }
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[2]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen < 0)
+      return currLen;
+  }
+
+  if (fspec[3]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[4]) {
+    bytes   += 3;
+    dataLen -= 3;
+    currLen += 3;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[5]) {
+    bytes   += 6;
+    dataLen -= 6;
+    currLen += 6;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[6]) {
+    bytes   += 8;
+    dataLen -= 8;
+    currLen += 8;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[7]) {
+    bytes   += 3;
+    dataLen -= 3;
+    currLen += 3;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[8]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[9]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[10]) {
+    bytes   += 3;
+    dataLen -= 3;
+    currLen += 3;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[11]) {
+    bytes   += 3;
+    dataLen -= 3;
+    currLen += 3;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[12]) {
+    bytes   += 4;
+    dataLen -= 4;
+    currLen += 4;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[13]) {
+    bytes   += 3;
+    dataLen -= 3;
+    currLen += 3;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[14]) {
+    bytes   += 5;
+    dataLen -= 5;
+    currLen += 5;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[15]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[16]) {
+    while (1) {
+      if (dataLen <= 0)
+        return currLen;
+      int cont = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+      if (!cont)
+        break;
+    }
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[17]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[18]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[19]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[20]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[21]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[22]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[23]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[24]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[25]) {
+    bytes   += 4;
+    dataLen -= 4;
+    currLen += 4;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[26]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[27]) {
+    bytes   += 3;
+    dataLen -= 3;
+    currLen += 3;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[28]) {
+    bytes   += 6;
+    dataLen -= 6;
+    currLen += 6;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[29]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[30]) {
+    dataLen -= 1;
+    if (dataLen <= 0)
+      return currLen;
+    int ws  = *bytes & 0x80;
+    int wd  = *bytes & 0x40;
+    int tmp = *bytes & 0x20;
+    int trp = *bytes & 0x10;
+    bytes   += 1;
+    currLen += 1;
+    if (ws)
+    {
+      bytes   += 2;
+      dataLen -= 2;
+      currLen += 2;
+    }
+    if (wd)
+    {
+      bytes   += 2;
+      dataLen -= 2;
+      currLen += 2;
+    }
+    if (tmp)
+    {
+      bytes   += 2;
+      dataLen -= 2;
+      currLen += 2;
+    }
+    if (trp)
+    {
+      bytes   += 2;
+      dataLen -= 2;
+      currLen += 2;
+    }
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[31]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[32]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[33]) {
+    dataLen -= 1;
+    if (dataLen <= 0)
+      return currLen;
+    int tis  = *bytes & 0x80;
+    int tid  = *bytes & 0x40;
+    bytes   += 1;
+    currLen += 1;
+    if (tis)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+    if (tid)
+    {
+      if (dataLen <= 0)
+        return currLen;
+      int len = *bytes * 15 + 1;
+      bytes   += len;
+      dataLen -= len;
+      currLen += len;
+    }
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[34]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[35]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[36]) {
+    while (1) {
+      if (dataLen <= 0)
+        return currLen;
+      int cont = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+      if (!cont)
+        break;
+    }
+  }
+
+  if (fspec[37]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[38]) {
+    int rep = *bytes * 8 + 1;
+    bytes   += rep;
+    dataLen -= rep;
+    currLen += rep;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[39]) {
+    bytes   += 7;
+    dataLen -= 7;
+    currLen += 7;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[40]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[41]) {
+    int fx;
+    int aos;
+    int trd;
+    int m3a;
+    int qi;
+    int ti;
+    int mam;
+    int gh;
+    int fl  = 0;
+    int sal = 0;
+    int fsa = 0;
+    int as  = 0;
+    int tas = 0;
+    int mh  = 0;
+    int bvr = 0;
+    int gvr = 0;
+    int gv  = 0;
+    int tar = 0;
+    int tid = 0;
+    int ts  = 0;
+    int met = 0;
+    int roa = 0;
+    int ara = 0;
+    int scc = 0;
+
+    if (dataLen <= 0)
+      return currLen;
+
+    aos = *bytes & 0x80;
+    trd = *bytes & 0x40;
+    m3a = *bytes & 0x20;
+    qi  = *bytes & 0x10;
+    ti  = *bytes & 0x08;
+    mam = *bytes & 0x04;
+    gh  = *bytes & 0x02;
+    fx  = *bytes & 0x01;
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+
+    if (fx)
+    {
+      if (dataLen <= 0)
+        return currLen;
+
+      fl  = *bytes & 0x80;
+      sal = *bytes & 0x40;
+      fsa = *bytes & 0x20;
+      as  = *bytes & 0x10;
+      tas = *bytes & 0x08;
+      mh  = *bytes & 0x04;
+      bvr = *bytes & 0x02;
+      fx  = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (fx)
+    {
+      if (dataLen <= 0)
+        return currLen;
+
+      gvr = *bytes & 0x80;
+      gv  = *bytes & 0x40;
+      tar = *bytes & 0x20;
+      tid = *bytes & 0x10;
+      ts  = *bytes & 0x08;
+      met = *bytes & 0x04;
+      roa = *bytes & 0x02;
+      fx  = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (fx)
+    {
+      if (dataLen <= 0)
+        return currLen;
+
+      ara = *bytes & 0x80;
+      scc = *bytes & 0x40;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (aos)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (trd)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (m3a)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (qi)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (ti)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (mam)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (gh)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (fl)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (sal)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (fsa)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (as)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (tas)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (mh)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (bvr)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (gvr)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (gv)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (tar)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (tid)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (ts)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (met)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (roa)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (ara)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (scc)
+    {
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+    }
+
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[47]) {
+    int len = *bytes;
+    bytes   += len;
+    dataLen -= len;
+    currLen += len;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[48]) {
+    int len = *bytes;
+    bytes   += len;
+    dataLen -= len;
+    currLen += len;
+  }
+  return currLen;
 }
 
 static unsigned int computeAsterix34Length(
@@ -588,6 +1265,9 @@ static unsigned int computeDataRecordLength(
 
   switch (category)
   {
+    case 21:
+      currLen += computeAsterix21Length(bytes, len);
+      break;
     case 34:
       currLen += computeAsterix34Length(bytes, len);
       break;
@@ -617,7 +1297,7 @@ static int isAsterix(
   return remainingData == 0;
 }
 
-static void write_dump(u_char *pcapOutput, const struct pcap_pkthdr *h,
+static void write_dump_eth(u_char *pcapOutput, const struct pcap_pkthdr *h,
     const struct ether_header *eth_hdr, const struct ip *ip_hdr,
     const struct udphdr *udp_hdr, int category, const u_char *pos,
     unsigned int currLen)
@@ -669,6 +1349,58 @@ static void write_dump(u_char *pcapOutput, const struct pcap_pkthdr *h,
   pcap_dump(pcapOutput, &new_h, bytes);
 }
 
+static void write_dump_sll(u_char *pcapOutput, const struct pcap_pkthdr *h,
+    const struct sll_header *sll_hdr, const struct ip *ip_hdr,
+    const struct udphdr *udp_hdr, int category, const u_char *pos,
+    unsigned int currLen)
+{
+  struct pcap_pkthdr new_h;
+  struct sll_header  new_sll_hdr;
+  char               ipRaw[60];
+  struct udphdr      new_udp_hdr;
+
+  unsigned int asterixLength = currLen + 3;
+  unsigned int udpLength     = asterixLength + sizeof(udp_hdr);
+  unsigned int ipLen         = ip_hdr->ip_hl * 4;
+  unsigned int ipLength      = udpLength + ipLen;
+
+  memcpy(&new_h, h, sizeof(new_h));
+  new_h.caplen = sizeof(struct sll_header) + ipLength;
+  new_h.len    = new_h.caplen;
+
+  u_char bytes[65536];
+
+  u_char *temp = bytes;
+
+  memcpy(&new_sll_hdr, sll_hdr, sizeof(struct sll_header));
+  new_sll_hdr.sll_protocol = htons(ETHERTYPE_IP);
+
+  memcpy(temp, &new_sll_hdr, sizeof(struct sll_header));
+  temp += sizeof(struct sll_header);
+
+  ipLen = ip_hdr->ip_hl * 4;
+  memcpy(ipRaw, ip_hdr, ipLen);
+  ((struct ip *)ipRaw)->ip_len = htons(ipLength);
+
+  memcpy(temp, ipRaw, ipLen);
+  temp += ipLen;
+
+  memcpy(&new_udp_hdr, udp_hdr, sizeof(struct udphdr));
+  new_udp_hdr.len = htons(udpLength);
+
+  memcpy(temp, &new_udp_hdr, sizeof(struct udphdr));
+  temp += sizeof(struct udphdr);
+
+  *temp++ = category;
+
+  *temp++ = asterixLength / 256;
+  *temp++ = asterixLength % 256;
+
+  memcpy(temp, pos, currLen);
+
+  pcap_dump(pcapOutput, &new_h, bytes);
+}
+
 static void callback_handler(u_char *user __attribute__((unused)),
     const struct pcap_pkthdr *h,
     const u_char *bytes)
@@ -679,6 +1411,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   unsigned int len    = h->len;
 
   struct ether_header eth_hdr;
+  struct sll_header   sll_hdr;
   struct ip ip_hdr;
   struct udphdr udp_hdr;
   struct vlan_tag vlan_hdr;
@@ -694,26 +1427,47 @@ static void callback_handler(u_char *user __attribute__((unused)),
   if (caplen != len)
     return;
 
-  /* Copy the ethernet header */
-  if (len < sizeof(eth_hdr))
-    return;
-  memcpy(&eth_hdr, bytes, sizeof(eth_hdr));
-  bytes += sizeof(eth_hdr);
-  len   -= sizeof(eth_hdr);
-
-  protocol = ntohs(eth_hdr.ether_type);
-
-  /* Check for VLAN data */
-  if (protocol == ETHERTYPE_VLAN)
+  if (datalink == DLT_LINUX_SLL)
   {
-    /* Copy the vlan header */
-    if (len < sizeof(vlan_hdr))
+    /* Copy the sll header */
+    if (len < sizeof(sll_hdr))
       return;
-    memcpy(&vlan_hdr, bytes, sizeof(vlan_hdr));
-    bytes += sizeof(vlan_hdr);
-    len   -= sizeof(vlan_hdr);
 
-    protocol = ntohs(vlan_hdr.vlan_tci);
+    memcpy(&sll_hdr, bytes, sizeof(sll_hdr));
+    bytes += sizeof(sll_hdr);
+    len   -= sizeof(sll_hdr);
+
+    protocol = ntohs(sll_hdr.sll_protocol);
+  }
+  else if (datalink == DLT_EN10MB)
+  {
+    /* Copy the ethernet header */
+    if (len < sizeof(eth_hdr))
+      return;
+
+    memcpy(&eth_hdr, bytes, sizeof(eth_hdr));
+    bytes += sizeof(eth_hdr);
+    len   -= sizeof(eth_hdr);
+
+    protocol = ntohs(eth_hdr.ether_type);
+
+    /* Check for VLAN data */
+    if (protocol == ETHERTYPE_VLAN)
+    {
+      /* Copy the vlan header */
+      if (len < sizeof(vlan_hdr))
+        return;
+      memcpy(&vlan_hdr, bytes, sizeof(vlan_hdr));
+      bytes += sizeof(vlan_hdr);
+      len   -= sizeof(vlan_hdr);
+
+      protocol = ntohs(vlan_hdr.vlan_tci);
+    }
+  }
+  else
+  {
+    pcap_dump((u_char *)pcapOutput, h, save_bytes);
+    return;
   }
 
   /* Discard non IP datagram */
@@ -787,8 +1541,12 @@ static void callback_handler(u_char *user __attribute__((unused)),
     while (remaining > 0)
     {
       currLen    = computeDataRecordLength(pos, category, remaining);
-      write_dump((u_char *)pcapOutput, h, &eth_hdr, &ip_hdr, &udp_hdr,
-          category, pos, currLen);
+      if (datalink == DLT_LINUX_SLL)
+        write_dump_sll((u_char *)pcapOutput, h, &sll_hdr, &ip_hdr, &udp_hdr,
+            category, pos, currLen);
+      else
+        write_dump_eth((u_char *)pcapOutput, h, &eth_hdr, &ip_hdr, &udp_hdr,
+            category, pos, currLen);
       remaining -= currLen;
       pos       += currLen;
     }
@@ -818,6 +1576,19 @@ int main(int argc, char* argv[])
     printf("Open of pcap file [%s] failed: %s\n", pcapNameInput, errbuf);
     return -1;
   }
+
+  datalink = pcap_datalink(pcapInput);
+  if (datalink == PCAP_ERROR_NOT_ACTIVATED) {
+    printf("capfile not activated\n");
+    return -1;
+  }
+
+  if (datalink == DLT_LINUX_SLL)
+    ;
+  else if (datalink == DLT_EN10MB)
+    ;
+  else
+    printf("Data Link Type unprocessed: %i\n", datalink);
 
   pcapOutput = pcap_dump_open(pcapInput, "-");
   if (pcapOutput == NULL) {
