@@ -194,9 +194,9 @@ static unsigned int computeAsterix21Length(
   }
 
   if (fspec[14]) {
-    bytes   += 5;
-    dataLen -= 5;
-    currLen += 5;
+    bytes   += 4;
+    dataLen -= 4;
+    currLen += 4;
     if (dataLen <= 0)
       return currLen;
   }
