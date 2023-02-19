@@ -1424,7 +1424,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   /*
    * No way to do something with truncated packet
    */
-  if (caplen != len)
+  if (caplen < len)
     return;
 
   if (datalink == DLT_LINUX_SLL)
