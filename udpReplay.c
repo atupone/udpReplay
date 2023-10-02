@@ -118,6 +118,12 @@ int main(int argc, char* argv[])
     return -1;
   }
 
+  datalink = pcap_datalink(pcap);
+
+  if (datalink != DLT_EN10MB)
+    if (datalink != DLT_RAW) {
+      printf("datalink = %i not handled\n", datalink);
+    }
   replayAll(pcap);
 
   return 0;

@@ -24,5 +24,6 @@ extern int oneByOne;
 extern int asterixTime;
 extern int  setMulticastTTL;
 extern long multicastTTLValue;
+extern int datalink;
 
 extern void replayAll(pcap_t *pcap);

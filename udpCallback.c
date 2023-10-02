@@ -55,6 +55,7 @@ long int countToFlood = 0;
 int    asterixTime = 0;
 int    setMulticastTTL = 0;
 long   multicastTTLValue = 0;
+int    datalink;
 
 void waitBeforeSending(struct timeval actual_delta)
 {
@@ -141,31 +142,33 @@ static void callback_handler(u_char *user __attribute__((unused)),
   if (caplen != len)
     return;
 
-  /* Copy the ethernet header */
-  if (len < sizeof(eth_hdr))
-    return;
-  memcpy(&eth_hdr, bytes, sizeof(eth_hdr));
-  bytes += sizeof(eth_hdr);
-  len   -= sizeof(eth_hdr);
-
-  protocol = ntohs(eth_hdr.ether_type);
-
-  /* Check for VLAN data */
-  if (protocol == ETHERTYPE_VLAN)
-  {
-    /* Copy the vlan header */
-    if (len < sizeof(vlan_hdr))
+  if (datalink == DLT_EN10MB) {
+    /* Copy the ethernet header */
+    if (len < sizeof(eth_hdr))
       return;
-    memcpy(&vlan_hdr, bytes, sizeof(vlan_hdr));
-    bytes += sizeof(vlan_hdr);
-    len   -= sizeof(vlan_hdr);
+    memcpy(&eth_hdr, bytes, sizeof(eth_hdr));
+    bytes += sizeof(eth_hdr);
+    len   -= sizeof(eth_hdr);
 
-    protocol = ntohs(vlan_hdr.vlan_tci);
+    protocol = ntohs(eth_hdr.ether_type);
+
+    /* Check for VLAN data */
+    if (protocol == ETHERTYPE_VLAN)
+    {
+      /* Copy the vlan header */
+      if (len < sizeof(vlan_hdr))
+        return;
+      memcpy(&vlan_hdr, bytes, sizeof(vlan_hdr));
+      bytes += sizeof(vlan_hdr);
+      len   -= sizeof(vlan_hdr);
+
+      protocol = ntohs(vlan_hdr.vlan_tci);
+    }
+
+    /* Discard non IP datagram */
+    if (protocol != ETHERTYPE_IP)
+      return;
   }
-
-  /* Discard non IP datagram */
-  if (protocol != ETHERTYPE_IP)
-    return;
 
   /* Copy the IPv4 header */
   if (len < sizeof(ip_hdr))
