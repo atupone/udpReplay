@@ -41,13 +41,14 @@ int main(int argc, char* argv[])
     {"step",  no_argument,       0, '1'},
     {"flood", no_argument,       0, 'f'},
     {"dest",  required_argument, 0, 'd'},
+    {"port",  required_argument, 0, 'p'},
     {"astx",  no_argument,       0, 4},
     {"mttl",  required_argument, 0, 1},
     {0,       0,                 0, 0}
   };
   int option_index;
 
-  while ((c = getopt_long(argc, argv, "1fd:", long_options, &option_index)) != -1)
+  while ((c = getopt_long(argc, argv, "1fd:p:", long_options, &option_index)) != -1)
     switch (c) {
       case 1:
         setMulticastTTL = 1;
@@ -64,6 +65,9 @@ int main(int argc, char* argv[])
         break;
       case 'd':
         dvalue = optarg;
+        break;
+      case 'p':
+        pvalue = optarg;
         break;
       default:
         break;
@@ -93,6 +97,18 @@ int main(int argc, char* argv[])
       perror("Converting -d option to valid host fails");
       return -1;
     }
+  }
+  if (pvalue) {
+    int port = atoi(pvalue);
+    if (port <= 0) {
+      printf("-p %s option is an invalid number or zero\n", pvalue);
+      return -1;
+    }
+    if (port > 65535) {
+      printf("-p %s option is greater then 65535\n", pvalue);
+      return -1;
+    }
+    sockaddr.sin_port = htons(port);
   }
 
   pcap = pcap_open_offline(pcapName, errbuf);

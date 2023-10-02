@@ -18,6 +18,7 @@
 extern struct sockaddr_in sockaddr;
 extern int rewriteDestination;
 extern char *dvalue;
+extern char *pvalue;
 extern int flood;
 extern int oneByOne;
 extern int asterixTime;

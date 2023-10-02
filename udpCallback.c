@@ -48,6 +48,7 @@ static int udpSocket;
 struct sockaddr_in sockaddr;
 static int start_loop = 1;
 char  *dvalue = NULL;
+char  *pvalue = NULL;
 int    flood = 0;
 int    oneByOne = 0;
 long int countToFlood = 0;
@@ -238,11 +239,13 @@ static void callback_handler(u_char *user __attribute__((unused)),
   /* Set destination */
   if (!dvalue)
     sockaddr.sin_addr.s_addr = ip_hdr.ip_dst.s_addr;
+  if (!pvalue) {
 #ifdef HAVE_STRUCT_UDPHDR_UH_DPORT
-  sockaddr.sin_port = udp_hdr.uh_dport;
+    sockaddr.sin_port = udp_hdr.uh_dport;
 #else
-  sockaddr.sin_port = udp_hdr.dest;
+    sockaddr.sin_port = udp_hdr.dest;
 #endif
+  }
 
   if (asterixTime)
   {

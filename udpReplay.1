@@ -26,6 +26,9 @@ Adjust the Asterix Time Of Day to reflect the time the message is sent
 .BR -d\ host | --dest\ host
 Send the datagram to the specified host. It this option is not present, data are sent to the original host as recorded in the pcap file
 .TP
+.BR -p\ port | --port\ port
+Send the datagram to the specified port. It this option is not present, data are sent to the original port as recorded in the pcap file
+.TP
 .BR --mttl\ ttlValue
 Set the time to live for multicast packets to the value specified as argument. Otherwise is set to 1
 .TP
