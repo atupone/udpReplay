@@ -14,12 +14,14 @@
 #endif
 
 #include <pcap/pcap.h>
+#include <unistd.h>
 
 extern struct sockaddr_in sockaddr;
 extern int rewriteDestination;
 extern char *dvalue;
 extern char *pvalue;
 extern int flood;
+extern useconds_t floodTime;
 extern int oneByOne;
 extern int asterixTime;
 extern int  setMulticastTTL;

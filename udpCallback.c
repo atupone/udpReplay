@@ -50,6 +50,7 @@ static int start_loop = 1;
 char  *dvalue = NULL;
 char  *pvalue = NULL;
 int    flood = 0;
+useconds_t floodTime = 1000;
 int    oneByOne = 0;
 long int countToFlood = 0;
 int    asterixTime = 0;
@@ -99,8 +100,7 @@ void waitBeforeSending(struct timeval actual_delta)
 
 void waitALittle()
 {
-  useconds_t useconds = 1000;
-  int result = usleep(useconds);
+  int result = usleep(floodTime);
 
   if (result != 0) {
     perror("usleep Failed");

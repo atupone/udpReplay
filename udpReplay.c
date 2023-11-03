@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
   pcap_t *pcap;
   struct option long_options[] = {
     {"step",  no_argument,       0, '1'},
-    {"flood", no_argument,       0, 'f'},
+    {"flood", optional_argument, 0, 'f'},
     {"dest",  required_argument, 0, 'd'},
     {"port",  required_argument, 0, 'p'},
     {"astx",  no_argument,       0, 4},
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   };
   int option_index;
 
-  while ((c = getopt_long(argc, argv, "1fd:p:", long_options, &option_index)) != -1)
+  while ((c = getopt_long(argc, argv, "1f::d:p:", long_options, &option_index)) != -1)
     switch (c) {
       case 1:
         setMulticastTTL = 1;
@@ -62,6 +62,8 @@ int main(int argc, char* argv[])
         break;
       case 'f':
         flood = 1;
+        if (optarg)
+          floodTime = strtol(optarg, NULL, 0) * 1000;
         break;
       case 'd':
         dvalue = optarg;

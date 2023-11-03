@@ -4,7 +4,7 @@ udpReplay \- trasmit udp frame read from a pcap file
 .SH SYNOPSIS
 .B udpReplay
 [-1|--step]
-[-f|--flood]
+[-f|--flood [waitingTime]] 
 [-d host|--dest host]
 [--astx]
 [--mttl ttlValue]
@@ -17,8 +17,8 @@ get the udp packets in a pcap file and sends them as udp datagram
 .BR -1 | --step
 Send the datagram one by one waiting for input from console to send the next
 .TP
-.BR -f | --flood
-Send the datagram as fast as it can
+.BR -f | --flood\ [waitingTime]
+Send the datagram as fast as it can, delaying each packet only by waitingTime msec. 1 msec if parameter is missing
 .TP
 .BR --astx
 Adjust the Asterix Time Of Day to reflect the time the message is sent
