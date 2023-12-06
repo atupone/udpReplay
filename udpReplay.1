@@ -4,10 +4,11 @@ udpReplay \- trasmit udp frame read from a pcap file
 .SH SYNOPSIS
 .B udpReplay
 [-1|--step]
-[-f|--flood [waitingTime]] 
+[-f[waitingTime]|--flood[=waitingTime]]
 [-d host|--dest host]
 [--astx]
 [--mttl ttlValue]
+[-l[waitingTime]|--loop[=waitingTime]]
 .IR pcapfile
 .SH DESCRIPTION
 .B udpReplay
@@ -31,6 +32,9 @@ Send the datagram to the specified port. It this option is not present, data are
 .TP
 .BR --mttl\ ttlValue
 Set the time to live for multicast packets to the value specified as argument. Otherwise is set to 1
+.TP
+.BR -l[waitingTime] | --loop[=waitingTime]
+Send all packets in the pcap file, wait for the specified msec (1 msec if parameter is missing), and loops.
 .TP
 .BR file
 the file that contain the datagram to be sent. It should be in the pcap format

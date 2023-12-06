@@ -28,27 +28,53 @@
 
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
 
 #include "udpCallback.h"
+
+void help()
+{
+  printf("udpreplay [-options..] pcap-file\n"
+      "where options include: \n"
+      "       -1|--step \n"
+      "              Send the datagram one by one waiting for input from console to send the next \n"
+      "       -f[waitingTime]|--flood[=waitingTime] \n"
+      "              Send the datagram as fast as it can, delaying each packet only by waitingTime msec. 1 msec if parameter is missing \n"
+      "       --astx Adjust the Asterix Time Of Day to reflect the time the message is sent \n"
+      "       -d host|--dest host \n"
+      "              Send the datagram to the specified host. It this option is not present, data are sent to the original host as recorded in the pcap file \n"
+      "       -p port|--port port \n"
+      "              Send the datagram to the specified port. It this option is not present, data are sent to the original port as recorded in the pcap file \n"
+      "       --mttl ttlValue \n"
+      "              Set the time to live for multicast packets to the value specified as argument. Otherwise is set to 1 \n"
+      "       -l[waitingTime]|--loop[=waitingTime] \n"
+      "              Send all packets in the pcap file, wait for the specified msec (1 msec if parameter is missing), and loops. \n"
+      "\n"
+      "       pcap-file   the file that contain the datagram to be sent. It should be in the pcap format \n"
+      );
+}
+
+static int startSingleReplay(const char *pcapName);
 
 int main(int argc, char* argv[])
 {
   int c;
   const char *pcapName;
-  char errbuf[PCAP_ERRBUF_SIZE];
-  pcap_t *pcap;
   struct option long_options[] = {
     {"step",  no_argument,       0, '1'},
     {"flood", optional_argument, 0, 'f'},
+    {"loop",  optional_argument, 0, 'l'},
     {"dest",  required_argument, 0, 'd'},
     {"port",  required_argument, 0, 'p'},
     {"astx",  no_argument,       0, 4},
     {"mttl",  required_argument, 0, 1},
+    {"help",  no_argument,       0, 'h'},
     {0,       0,                 0, 0}
   };
   int option_index;
 
-  while ((c = getopt_long(argc, argv, "1f::d:p:", long_options, &option_index)) != -1)
+  while ((c = getopt_long(argc, argv, "1f::l::d:p:h", long_options, &option_index)) != -1)
     switch (c) {
       case 1:
         setMulticastTTL = 1;
@@ -71,9 +97,21 @@ int main(int argc, char* argv[])
       case 'p':
         pvalue = optarg;
         break;
-      default:
+      case 'l':
+        loop = 1;
+        if (optarg)
+          loopTime = strtol(optarg, NULL, 0) * 1000;
         break;
-    };
+      case 'h':
+        help();
+        return 0;
+      case '?':
+        printf("Unknown option\n");
+        break;
+      default:
+        printf("Unknown: getopt_long returned == %d\n", c );
+        break;
+    }
 
   if (oneByOne == 1 && flood == 1) {
     printf("You cannot specify both -1 and -f\n");
@@ -112,6 +150,26 @@ int main(int argc, char* argv[])
     }
     sockaddr.sin_port = htons(port);
   }
+
+  do {
+    int result = startSingleReplay(pcapName);
+    if (result)
+      return result;
+
+    // debug
+    time_t tm;
+    time(&tm);
+    printf("Current date and time: %s\n", ctime(&tm));
+    // debug
+  } while( loop && ! waitToLoop());
+
+  return 0;
+}
+
+int startSingleReplay(const char *pcapName)
+{
+  pcap_t *pcap;
+  char errbuf[PCAP_ERRBUF_SIZE];
 
   pcap = pcap_open_offline(pcapName, errbuf);
 

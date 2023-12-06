@@ -22,6 +22,8 @@ extern char *dvalue;
 extern char *pvalue;
 extern int flood;
 extern useconds_t floodTime;
+extern int loop;
+extern useconds_t loopTime;
 extern int oneByOne;
 extern int asterixTime;
 extern int  setMulticastTTL;
@@ -29,3 +31,4 @@ extern long multicastTTLValue;
 extern int datalink;
 
 extern void replayAll(pcap_t *pcap);
+extern int waitToLoop();

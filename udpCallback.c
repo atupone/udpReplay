@@ -51,6 +51,8 @@ char  *dvalue = NULL;
 char  *pvalue = NULL;
 int    flood = 0;
 useconds_t floodTime = 1000;
+int    loop = 0;
+useconds_t loopTime = 1000;
 int    oneByOne = 0;
 long int countToFlood = 0;
 int    asterixTime = 0;
@@ -106,6 +108,17 @@ void waitALittle()
     perror("usleep Failed");
     return;
   }
+}
+
+int waitToLoop()
+{
+  int result = usleep(loopTime);
+
+  if (result != 0) {
+    perror("usleep Failed");
+  }
+
+  return result;
 }
 
 static void callback_handler(u_char *user __attribute__((unused)),
