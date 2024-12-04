@@ -58,6 +58,7 @@ long int countToFlood = 0;
 int    asterixTime = 0;
 int    setMulticastTTL = 0;
 long   multicastTTLValue = 0;
+int    setBroadcast = 0;
 int    datalink;
 
 void waitBeforeSending(struct timeval actual_delta)
@@ -292,7 +293,10 @@ void replayAll(pcap_t *pcap) {
     u_char ttl = multicastTTLValue;
     setsockopt(udpSocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
   }
-
+  if (setBroadcast) {
+    int brd = 1;
+    setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, &brd, sizeof(brd));
+  }
   result = pcap_loop(pcap, -1, callback_handler, NULL);
   if (result == -1) {
     pcap_perror(pcap, "Error during pcap_loop\n");

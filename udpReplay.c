@@ -37,19 +37,21 @@ void help()
 {
   printf("udpreplay [-options..] pcap-file\n"
       "where options include: \n"
-      "       -1|--step \n"
-      "              Send the datagram one by one waiting for input from console to send the next \n"
-      "       -f[waitingTime]|--flood[=waitingTime] \n"
-      "              Send the datagram as fast as it can, delaying each packet only by waitingTime msec. 1 msec if parameter is missing \n"
       "       --astx Adjust the Asterix Time Of Day to reflect the time the message is sent \n"
+      "       -b|--broadcast \n"
+      "              Allows to send broadcast datagram. It this option is not present, datagram frame are rejected \n"
       "       -d host|--dest host \n"
       "              Send the datagram to the specified host. It this option is not present, data are sent to the original host as recorded in the pcap file \n"
-      "       -p port|--port port \n"
-      "              Send the datagram to the specified port. It this option is not present, data are sent to the original port as recorded in the pcap file \n"
-      "       --mttl ttlValue \n"
-      "              Set the time to live for multicast packets to the value specified as argument. Otherwise is set to 1 \n"
+      "       -f[waitingTime]|--flood[=waitingTime] \n"
+      "              Send the datagram as fast as it can, delaying each packet only by waitingTime msec. 1 msec if parameter is missing \n"
       "       -l[waitingTime]|--loop[=waitingTime] \n"
       "              Send all packets in the pcap file, wait for the specified msec (1 msec if parameter is missing), and loops. \n"
+      "       --mttl ttlValue \n"
+      "              Set the time to live for multicast packets to the value specified as argument. Otherwise is set to 1 \n"
+      "       -p port|--port port \n"
+      "              Send the datagram to the specified port. It this option is not present, data are sent to the original port as recorded in the pcap file \n"
+      "       -1|--step \n"
+      "              Send the datagram one by one waiting for input from console to send the next \n"
       "\n"
       "       pcap-file   the file that contain the datagram to be sent. It should be in the pcap format \n"
       );
@@ -62,49 +64,53 @@ int main(int argc, char* argv[])
   int c;
   const char *pcapName;
   struct option long_options[] = {
-    {"step",  no_argument,       0, '1'},
-    {"flood", optional_argument, 0, 'f'},
-    {"loop",  optional_argument, 0, 'l'},
-    {"dest",  required_argument, 0, 'd'},
-    {"port",  required_argument, 0, 'p'},
-    {"astx",  no_argument,       0, 4},
-    {"mttl",  required_argument, 0, 1},
-    {"help",  no_argument,       0, 'h'},
-    {0,       0,                 0, 0}
+    {"astx",      no_argument,       0, 4},
+    {"broadcast", no_argument,       0, 'b'},
+    {"dest",      required_argument, 0, 'd'},
+    {"flood",     optional_argument, 0, 'f'},
+    {"help",      no_argument,       0, 'h'},
+    {"loop",      optional_argument, 0, 'l'},
+    {"mttl",      required_argument, 0, 1},
+    {"port",      required_argument, 0, 'p'},
+    {"step",      no_argument,       0, '1'},
+    {0,           0,                 0, 0}
   };
   int option_index;
 
-  while ((c = getopt_long(argc, argv, "1f::l::d:p:h", long_options, &option_index)) != -1)
+  while ((c = getopt_long(argc, argv, "bd:f::hl:p:1", long_options, &option_index)) != -1)
     switch (c) {
-      case 1:
-        setMulticastTTL = 1;
-        multicastTTLValue = strtol(optarg, NULL, 0);
-        break;
       case 4:
         asterixTime = 1;
         break;
-      case '1':
-        oneByOne = 1;
+      case 'b':
+        setBroadcast = 1;
+        break;
+      case 'd':
+        dvalue = optarg;
         break;
       case 'f':
         flood = 1;
         if (optarg)
           floodTime = strtol(optarg, NULL, 0) * 1000;
         break;
-      case 'd':
-        dvalue = optarg;
-        break;
-      case 'p':
-        pvalue = optarg;
-        break;
+      case 'h':
+        help();
+        return 0;
       case 'l':
         loop = 1;
         if (optarg)
           loopTime = strtol(optarg, NULL, 0) * 1000;
         break;
-      case 'h':
-        help();
-        return 0;
+      case 1:
+        setMulticastTTL = 1;
+        multicastTTLValue = strtol(optarg, NULL, 0);
+        break;
+      case 'p':
+        pvalue = optarg;
+        break;
+      case '1':
+        oneByOne = 1;
+        break;
       case '?':
         printf("Unknown option\n");
         break;
