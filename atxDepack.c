@@ -68,6 +68,103 @@ static unsigned int computeFSPEC(
   return i + 1;
 }
 
+static unsigned int computeAsterix1Length(
+    const u_char *bytes,
+    unsigned int  dataLen)
+{
+  unsigned int currLen = 0;
+
+  if (fspec[0]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[1]) {
+    while (1) {
+      if (dataLen <= 0)
+        return currLen;
+      int cont = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+      if (!cont)
+        break;
+    }
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[2]) {
+    bytes   += 4;
+    dataLen -= 4;
+    currLen += 4;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[3]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[4]) {
+    bytes   += 2;
+    dataLen -= 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[5]) {
+    while (1) {
+      if (dataLen <= 0)
+        return currLen;
+      int cont = *bytes & 0x01;
+      bytes   += 1;
+      dataLen -= 1;
+      currLen += 1;
+      if (!cont)
+        break;
+    }
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[6]) {
+    dataLen -= 2;
+    if (dataLen < 0)
+      return currLen;
+    bytes   += 2;
+    currLen += 2;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[9]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  if (fspec[14]) {
+    bytes   += 1;
+    dataLen -= 1;
+    currLen += 1;
+    if (dataLen <= 0)
+      return currLen;
+  }
+
+  return currLen;
+}
+
 static unsigned int computeAsterix21Length(
     const u_char *bytes,
     unsigned int  dataLen)
@@ -1265,6 +1362,9 @@ static unsigned int computeDataRecordLength(
 
   switch (category)
   {
+    case 1:
+      currLen += computeAsterix1Length(bytes, len);
+      break;
     case 21:
       currLen += computeAsterix21Length(bytes, len);
       break;
