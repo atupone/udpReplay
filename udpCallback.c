@@ -44,22 +44,8 @@
 
 #include "asterix.h"
 
-static int udpSocket;
-struct sockaddr_in sockaddr;
 static int start_loop = 1;
-char  *dvalue = NULL;
-char  *pvalue = NULL;
-int    flood = 0;
-useconds_t floodTime = 1000;
-int    loop = 0;
-useconds_t loopTime = 1000;
-int    oneByOne = 0;
 long int countToFlood = 0;
-int    asterixTime = 0;
-int    setMulticastTTL = 0;
-long   multicastTTLValue = 0;
-int    setBroadcast = 0;
-int    datalink;
 
 void waitBeforeSending(struct timeval actual_delta)
 {
@@ -101,9 +87,9 @@ void waitBeforeSending(struct timeval actual_delta)
   }
 }
 
-void waitALittle()
+void waitALittle(ReplayCtx *ctx)
 {
-  int result = usleep(floodTime);
+  int result = usleep(ctx->floodTime);
 
   if (result != 0) {
     perror("usleep Failed");
@@ -111,9 +97,9 @@ void waitALittle()
   }
 }
 
-int waitToLoop()
+int waitToLoop(ReplayCtx *ctx)
 {
-  int result = usleep(loopTime);
+  int result = usleep(ctx->loopTime);
 
   if (result != 0) {
     perror("usleep Failed");
@@ -122,10 +108,12 @@ int waitToLoop()
   return result;
 }
 
-static void callback_handler(u_char *user __attribute__((unused)),
+static void callback_handler(u_char *user,
     const struct pcap_pkthdr *h,
     const u_char *bytes)
 {
+  ReplayCtx *ctx = (ReplayCtx *)user;
+
   unsigned int caplen = h->caplen;
   unsigned int len    = h->len;
 
@@ -156,7 +144,7 @@ static void callback_handler(u_char *user __attribute__((unused)),
   if (caplen != len)
     return;
 
-  if (datalink == DLT_EN10MB) {
+  if (ctx->datalink == DLT_EN10MB) {
     /* Copy the ethernet header */
     if (len < sizeof(eth_hdr))
       return;
@@ -218,12 +206,12 @@ static void callback_handler(u_char *user __attribute__((unused)),
   if (len < dataLen)
     return;
 
-  if (flood) {
-    waitALittle();
-  } else if (oneByOne) {
+  if (ctx->flood) {
+    waitALittle(ctx);
+  } else if (ctx->oneByOne) {
     if (countToFlood > 0) {
       countToFlood--;
-      waitALittle();
+      waitALittle(ctx);
     } else {
       printf("Press <Enter> to send next datagram ->");
       sResult = fgets(s, sizeof(s), stdin);
@@ -254,17 +242,17 @@ static void callback_handler(u_char *user __attribute__((unused)),
   }
 
   /* Set destination */
-  if (!dvalue)
-    sockaddr.sin_addr.s_addr = ip_hdr.ip_dst.s_addr;
-  if (!pvalue) {
+  if (!ctx->dvalue)
+    ctx->sockaddr.sin_addr.s_addr = ip_hdr.ip_dst.s_addr;
+  if (!ctx->pvalue) {
 #ifdef HAVE_STRUCT_UDPHDR_UH_DPORT
-    sockaddr.sin_port = udp_hdr.uh_dport;
+    ctx->sockaddr.sin_port = udp_hdr.uh_dport;
 #else
-    sockaddr.sin_port = udp_hdr.dest;
+    ctx->sockaddr.sin_port = udp_hdr.dest;
 #endif
   }
 
-  if (asterixTime)
+  if (ctx->asterixTime)
   {
     unsigned int tod = now_tod.tv_sec;
     tod %= 86400;
@@ -274,30 +262,30 @@ static void callback_handler(u_char *user __attribute__((unused)),
   }
 
   /* Send UDP data */
-  byteCount = sendto(udpSocket, bytes, dataLen, 0,
-      (struct sockaddr *)&sockaddr, sizeof(sockaddr));
+  byteCount = sendto(ctx->udpSocket, bytes, dataLen, 0,
+      (struct sockaddr *)&ctx->sockaddr, sizeof(ctx->sockaddr));
   if (byteCount < 0) {
     perror("UDP sendto failed");
   }
 }
 
-void replayAll(pcap_t *pcap) {
+void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
   int result;
 
-  udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
-  if (udpSocket == -1) {
+  ctx->udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
+  if (ctx->udpSocket == -1) {
     perror("UDP Socket failed");
     return;
   }
-  if (setMulticastTTL) {
-    u_char ttl = multicastTTLValue;
-    setsockopt(udpSocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+  if (ctx->setMulticastTTL) {
+    u_char ttl = ctx->multicastTTLValue;
+    setsockopt(ctx->udpSocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
   }
-  if (setBroadcast) {
+  if (ctx->setBroadcast) {
     int brd = 1;
-    setsockopt(udpSocket, SOL_SOCKET, SO_BROADCAST, &brd, sizeof(brd));
+    setsockopt(ctx->udpSocket, SOL_SOCKET, SO_BROADCAST, &brd, sizeof(brd));
   }
-  result = pcap_loop(pcap, -1, callback_handler, NULL);
+  result = pcap_loop(pcap, -1, callback_handler, (u_char *)ctx);
   if (result == -1) {
     pcap_perror(pcap, "Error during pcap_loop\n");
   } else if (result == -2) {

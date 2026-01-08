@@ -57,11 +57,17 @@ void help()
       );
 }
 
-static int startSingleReplay(const char *pcapName);
+static int startSingleReplay(const char *pcapName, ReplayCtx *ctx);
 
 int main(int argc, char* argv[])
 {
   int c;
+  ReplayCtx ctx;
+  memset(&ctx, 0, sizeof(ReplayCtx));
+  ctx.pvalue = NULL;
+  ctx.floodTime = 1000;
+  ctx.loopTime  = 1000;
+
   const char *pcapName;
   struct option long_options[] = {
     {"astx",      no_argument,       0, 4},
@@ -80,36 +86,36 @@ int main(int argc, char* argv[])
   while ((c = getopt_long(argc, argv, "bd:f::hl:p:1", long_options, &option_index)) != -1)
     switch (c) {
       case 4:
-        asterixTime = 1;
+        ctx.asterixTime = 1;
         break;
       case 'b':
-        setBroadcast = 1;
+        ctx.setBroadcast = 1;
         break;
       case 'd':
-        dvalue = optarg;
+        ctx.dvalue = optarg;
         break;
       case 'f':
-        flood = 1;
+        ctx.flood = 1;
         if (optarg)
-          floodTime = strtol(optarg, NULL, 0) * 1000;
+          ctx.floodTime = strtol(optarg, NULL, 0) * 1000;
         break;
       case 'h':
         help();
         return 0;
       case 'l':
-        loop = 1;
+        ctx.loop = 1;
         if (optarg)
-          loopTime = strtol(optarg, NULL, 0) * 1000;
+          ctx.loopTime = strtol(optarg, NULL, 0) * 1000;
         break;
       case 1:
-        setMulticastTTL = 1;
-        multicastTTLValue = strtol(optarg, NULL, 0);
+        ctx.setMulticastTTL = 1;
+        ctx.multicastTTLValue = strtol(optarg, NULL, 0);
         break;
       case 'p':
-        pvalue = optarg;
+        ctx.pvalue = optarg;
         break;
       case '1':
-        oneByOne = 1;
+        ctx.oneByOne = 1;
         break;
       case '?':
         printf("Unknown option\n");
@@ -119,7 +125,7 @@ int main(int argc, char* argv[])
         break;
     }
 
-  if (oneByOne == 1 && flood == 1) {
+  if (ctx.oneByOne == 1 && ctx.flood == 1) {
     printf("You cannot specify both -1 and -f\n");
     return -1;
   }
@@ -131,34 +137,34 @@ int main(int argc, char* argv[])
 
   pcapName = argv[optind];
 
-  memset(&sockaddr, 0, sizeof(sockaddr));
-  sockaddr.sin_family = AF_INET;
+  memset(&ctx.sockaddr, 0, sizeof(ctx.sockaddr));
+  ctx.sockaddr.sin_family = AF_INET;
 
-  if (dvalue) {
-    int result = inet_pton(AF_INET, dvalue, &sockaddr.sin_addr);
+  if (ctx.dvalue) {
+    int result = inet_pton(AF_INET, ctx.dvalue, &ctx.sockaddr.sin_addr);
     if (!result) {
-      printf("-d %s option does not represent a valid host\n", dvalue);
+      printf("-d %s option does not represent a valid host\n", ctx.dvalue);
       return -1;
     } else if (result < 0) {
       perror("Converting -d option to valid host fails");
       return -1;
     }
   }
-  if (pvalue) {
-    int port = atoi(pvalue);
+  if (ctx.pvalue) {
+    int port = atoi(ctx.pvalue);
     if (port <= 0) {
-      printf("-p %s option is an invalid number or zero\n", pvalue);
+      printf("-p %s option is an invalid number or zero\n", ctx.pvalue);
       return -1;
     }
     if (port > 65535) {
-      printf("-p %s option is greater then 65535\n", pvalue);
+      printf("-p %s option is greater then 65535\n", ctx.pvalue);
       return -1;
     }
-    sockaddr.sin_port = htons(port);
+    ctx.sockaddr.sin_port = htons(port);
   }
 
   do {
-    int result = startSingleReplay(pcapName);
+    int result = startSingleReplay(pcapName, &ctx);
     if (result)
       return result;
 
@@ -167,12 +173,12 @@ int main(int argc, char* argv[])
     time(&tm);
     printf("Current date and time: %s\n", ctime(&tm));
     // debug
-  } while( loop && ! waitToLoop());
+  } while( ctx.loop && ! waitToLoop(&ctx));
 
   return 0;
 }
 
-int startSingleReplay(const char *pcapName)
+int startSingleReplay(const char *pcapName, ReplayCtx *ctx)
 {
   pcap_t *pcap;
   char errbuf[PCAP_ERRBUF_SIZE];
@@ -184,13 +190,13 @@ int startSingleReplay(const char *pcapName)
     return -1;
   }
 
-  datalink = pcap_datalink(pcap);
+  ctx->datalink = pcap_datalink(pcap);
 
-  if (datalink != DLT_EN10MB)
-    if (datalink != DLT_RAW) {
-      printf("datalink = %i not handled\n", datalink);
+  if (ctx->datalink != DLT_EN10MB)
+    if (ctx->datalink != DLT_RAW) {
+      printf("datalink = %i not handled\n", ctx->datalink);
     }
-  replayAll(pcap);
+  replayAll(pcap, ctx);
 
   return 0;
 }

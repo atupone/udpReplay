@@ -1,14 +1,22 @@
-/* udpReplay
- * Copyright (c) 2016 Tupone Alfredo
+/*
+ * Copyright (C) 2016 Alfredo Tupone
  *
- * This package is free software;  you can redistribute it and/or
- * modify it under the terms of the license found in the file
- * named COPYING that should have accompanied this file.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#pragma once
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -16,20 +24,31 @@
 #include <pcap/pcap.h>
 #include <unistd.h>
 
-extern struct sockaddr_in sockaddr;
-extern int rewriteDestination;
-extern char *dvalue;
-extern char *pvalue;
-extern int flood;
-extern useconds_t floodTime;
-extern int loop;
-extern useconds_t loopTime;
-extern int oneByOne;
-extern int asterixTime;
-extern int  setMulticastTTL;
-extern long multicastTTLValue;
-extern int  setBroadcast;
-extern int datalink;
+typedef struct {
+    int udpSocket;
+    struct sockaddr_in sockaddr;
+    char *dvalue;
+    char *pvalue;
+    int flood;
+    useconds_t floodTime;
+    int asterixTime;
+    int setMulticastTTL;
+    long multicastTTLValue;
+    int setBroadcast;
+    int datalink;
+    int oneByOne;
+    int loop;
+    useconds_t loopTime;
+} ReplayCtx;
 
-extern void replayAll(pcap_t *pcap);
-extern int waitToLoop();
+extern void replayAll(pcap_t *pcap, ReplayCtx *ctx);
+extern int waitToLoop(ReplayCtx *ctx);
+
+
+// Local Variables: ***
+// mode: C++ ***
+// tab-width: 4 ***
+// c-basic-offset: 4 ***
+// indent-tabs-mode: nil ***
+// End: ***
+// ex: shiftwidth=4 tabstop=4
