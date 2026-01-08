@@ -1,4 +1,4 @@
-bin_PROGRAMS = udpreplay atxDepack
+bin_PROGRAMS = udpreplay atxDepack liuDepack blockDepack
 man_MANS = udpReplay.1
 
 udpreplay_SOURCES = \
@@ -10,6 +10,12 @@ udpreplay_SOURCES = \
 
 atxDepack_SOURCES = \
 	atxDepack.c
+
+liuDepack_SOURCES = \
+	liuDepack.c
+
+blockDepack_SOURCES = \
+	blockDepack.c
 
 AM_CPPFLAGS = -I.
 AM_CFLAGS = $(PCAP_CFLAGS) -Wall
