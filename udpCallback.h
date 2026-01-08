@@ -39,6 +39,9 @@ typedef struct {
     int oneByOne;
     int loop;
     useconds_t loopTime;
+
+    struct timespec start_pcap; // PCAP timestamp of the first packet
+    struct timespec start_wall; // Monotonic clock time when replay started
 } ReplayCtx;
 
 extern void replayAll(pcap_t *pcap, ReplayCtx *ctx);

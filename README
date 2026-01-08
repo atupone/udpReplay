@@ -1,7 +1,0 @@
-# udpReplay
-Tool to replay udp datagram
-
-it is also capable of changing the Time of Day of the Asterix 34/48 messages to reflect the current time
-
-# atxDepack
-In a pcap file separate the asterix messages to have only one asterix message for datagram
