@@ -36,42 +36,6 @@ static void nsleep(long usec) {
 static int start_loop = 1;
 long int countToFlood = 0;
 
-void waitBeforeSending(struct timeval actual_delta)
-{
-  static struct timeval start_delta;
-
-  struct timeval delta_time;
-  useconds_t useconds;
-
-  if (start_loop) {
-    start_loop = 0;
-    memcpy(&start_delta, &actual_delta, sizeof(struct timeval));
-    return;
-  }
-
-  delta_time.tv_sec  = actual_delta.tv_sec  - start_delta.tv_sec;
-  delta_time.tv_usec = actual_delta.tv_usec - start_delta.tv_usec;
-
-  /* Normalize usec */
-  if (delta_time.tv_usec < 0)
-    do {
-      delta_time.tv_usec += 1000000;
-      --delta_time.tv_sec;
-    } while (delta_time.tv_usec < 0);
-  else
-    while (delta_time.tv_usec >= 1000000) {
-      delta_time.tv_usec -= 1000000;
-      ++delta_time.tv_sec;
-    }
-
-  if (delta_time.tv_sec >= 0) {
-    useconds = delta_time.tv_usec + 1000000 * delta_time.tv_sec;
-    if (useconds > 0) {
-      nsleep(useconds);
-    }
-  }
-}
-
 int waitToLoop(ReplayCtx *ctx)
 {
   nsleep(ctx->loopTime);
@@ -100,11 +64,6 @@ static void callback_handler(u_char *user,
   unsigned int dataLen;
 
   ssize_t byteCount;
-
-
-  char   s[12];
-  char  *sResult;
-  char  *endPtr;
 
   /*
    * No way to do something with truncated packet
@@ -151,20 +110,19 @@ static void callback_handler(u_char *user,
   /* Reject broadcast datagram */
   if (ip_hdr->ip_dst.s_addr == INADDR_BROADCAST) return;
 
-  /* Copy the UDP header */
   // --- Layer 4 Parsing (UDP) ---
   if (len < sizeof(struct udphdr)) return;
   udp_hdr = (struct udphdr *)bytes;
   bytes += sizeof(struct udphdr);
   len   -= sizeof(struct udphdr);
 
-  /* Discard uncomplete UDP datagram */
 #ifdef HAVE_STRUCT_UDPHDR_UH_ULEN
   dataLen = ntohs(udp_hdr->uh_ulen) - sizeof(struct udphdr);
 #else
   dataLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
 #endif
 
+  /* Discard uncomplete UDP datagram */
   if (len < dataLen) return;
 
   /* 2. High-Resolution Timing Logic */
@@ -175,6 +133,10 @@ static void callback_handler(u_char *user,
       countToFlood--;
       nsleep(ctx->floodTime);
     } else {
+      char   s[12];
+      char  *sResult;
+      char  *endPtr;
+
       printf("Press <Enter> to send next datagram ->");
       sResult = fgets(s, sizeof(s), stdin);
       if (sResult == NULL)
@@ -220,9 +182,10 @@ static void callback_handler(u_char *user,
     }
   }
 
-  /* Set destination */
+  // --- Prepare Destination ---
   if (!ctx->dvalue)
     ctx->sockaddr.sin_addr.s_addr = ip_hdr->ip_dst.s_addr;
+
   if (!ctx->pvalue) {
 #ifdef HAVE_STRUCT_UDPHDR_UH_DPORT
     ctx->sockaddr.sin_port = udp_hdr->uh_dport;
@@ -231,19 +194,22 @@ static void callback_handler(u_char *user,
 #endif
   }
 
-  if (ctx->asterixTime)
-  {
+  // --- Asterix Modification (Optional) ---
+  if (ctx->asterixTime) {
     struct timespec now;
     clock_gettime(CLOCK_REALTIME, &now);
     unsigned int tod = (now.tv_sec % 86400) * 128
       + (now.tv_nsec * 128 / 1000000000L);
+    // Cast away const for payload modification if necessary, or modify fixAsterixTOD signature
     bytes = fixAsterixTOD(bytes, dataLen, tod);
   }
 
-  /* Send UDP data */
+  // --- Send ---
   byteCount = sendto(ctx->udpSocket, bytes, dataLen, 0,
       (struct sockaddr *)&ctx->sockaddr, sizeof(ctx->sockaddr));
+
   if (byteCount < 0) {
+    // Use errno to print clearer error (e.g., Network Unreachable)
     perror("UDP sendto failed");
   }
 }
@@ -251,20 +217,27 @@ static void callback_handler(u_char *user,
 void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
   int result;
 
+  // Reset loop state variable
+  start_loop = 1;
+
   ctx->udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
   if (ctx->udpSocket == -1) {
     perror("UDP Socket failed");
     return;
   }
+
   if (ctx->setMulticastTTL) {
     u_char ttl = ctx->multicastTTLValue;
     setsockopt(ctx->udpSocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
   }
+
   if (ctx->setBroadcast) {
     int brd = 1;
     setsockopt(ctx->udpSocket, SOL_SOCKET, SO_BROADCAST, &brd, sizeof(brd));
   }
+
   result = pcap_loop(pcap, -1, callback_handler, (u_char *)ctx);
+
   if (result == -1) {
     pcap_perror(pcap, "Error during pcap_loop\n");
   } else if (result == -2) {
