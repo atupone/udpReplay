@@ -138,6 +138,7 @@ static void callback_handler(u_char *user,
     }
   } else {
     struct timespec deadline;
+    struct timespec now;
 
     // Initialize start times on the first packet
     if (start_loop) {
@@ -163,9 +164,31 @@ static void callback_handler(u_char *user,
         deadline.tv_nsec += 1000000000L;
       }
 
-      // Sleep until the exact nanosecond deadline
-      // TIMER_ABSTIME ensures we don't drift even if processing takes time
-      clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
+      // Hybrid Delay: Sleep then Spin
+      clock_gettime(CLOCK_MONOTONIC, &now);
+
+      // Calculate remaining nanoseconds
+      long remaining_ns = (deadline.tv_sec - now.tv_sec) * 1000000000L +
+                          (deadline.tv_nsec - now.tv_nsec);
+
+      // Threshold: 200 microseconds (200,000 ns)
+      // If we have plenty of time, sleep to be nice to the OS
+      if (remaining_ns > 200000) {
+        struct timespec sleep_until = deadline;
+        // Adjust sleep_until to wake up slightly BEFORE the deadline
+        sleep_until.tv_nsec -= 100000;
+        if (sleep_until.tv_nsec < 0) {
+          sleep_until.tv_sec--;
+          sleep_until.tv_nsec += 1000000000L;
+        }
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep_until, NULL);
+      }
+
+      // Busy-Wait (Spin) for the final precision
+      do {
+        clock_gettime(CLOCK_MONOTONIC, &now);
+      } while (now.tv_sec < deadline.tv_sec ||
+              (now.tv_sec == deadline.tv_sec && now.tv_nsec < deadline.tv_nsec));
     }
   }
 
