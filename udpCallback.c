@@ -193,7 +193,7 @@ static void callback_handler(u_char *user,
 
     memcpy(asterix_buf, data_ptr, dataLen);
     // Cast away const for payload modification if necessary, or modify fixAsterixTOD signature
-    fixAsterixTOD(data_ptr, dataLen, tod);
+    fixAsterixTOD(asterix_buf, dataLen, tod);
     send_ptr = asterix_buf;
   }
 
