@@ -308,6 +308,9 @@ void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
   } else if (result != 0) {
     printf("Result (%d) from pcap_loop() not foreseen\n", result);
   }
+
+  close(ctx->udpSocket);
+  ctx->udpSocket = -1;
 }
 
 // Local Variables: ***
