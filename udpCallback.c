@@ -48,82 +48,69 @@ static void callback_handler(u_char *user,
     const u_char *bytes)
 {
   ReplayCtx *ctx = (ReplayCtx *)user;
+  const u_char *data_ptr = bytes;
+  uint32_t remaining = h->caplen;
 
-  // Pointers to headers (Zero-copy approach)
-  struct ether_header *eth_hdr;
-  struct ip *ip_hdr;
-  struct udphdr *udp_hdr;
-  struct vlan_tag *vlan_hdr;
+  /* Safety: No way to do something with truncated packet */
+  if (h->caplen != h->len) return;
 
-  unsigned int caplen = h->caplen;
-  unsigned int len    = h->len;
+  /* Macro for bounds checking before pointer arithmetic */
+  #define REQUIRE_BYTES(n) if (remaining < (n)) return
 
-  uint16_t protocol;
-
-  unsigned int ipLen;
-  unsigned int dataLen;
-
-  ssize_t byteCount;
-
-  /*
-   * No way to do something with truncated packet
-   */
-  if (caplen != len) return;
-
-  // --- Layer 2 Parsing ---
+  /* Layer 2 Parsing & EtherType Check */
+  uint16_t protocol = 0;
   if (ctx->datalink == DLT_EN10MB) {
-    if (len < sizeof(struct ether_header)) return;
+    REQUIRE_BYTES(sizeof(struct ether_header));
 
-    eth_hdr = (struct ether_header *)bytes;
-    bytes += sizeof(struct ether_header);
-    len   -= sizeof(struct ether_header);
-
+    struct ether_header *eth_hdr = (struct ether_header *)data_ptr;
     protocol = ntohs(eth_hdr->ether_type);
 
-    /* Check for VLAN data */
-    if (protocol == ETHERTYPE_VLAN) {
-      if (len < sizeof(vlan_hdr)) return;
-      vlan_hdr = (struct vlan_tag*)bytes;
-      bytes += sizeof(struct vlan_tag);
-      len   -= sizeof(struct vlan_tag);
+    data_ptr  += sizeof(struct ether_header);
+    remaining -= sizeof(struct ether_header);
 
+    /* Handle VLAN tagging */
+    if (protocol == ETHERTYPE_VLAN) {
+      REQUIRE_BYTES(sizeof(struct ether_header));
+      struct vlan_tag *vlan_hdr = (struct vlan_tag*)data_ptr;
       protocol = ntohs(vlan_hdr->vlan_tci);
+      data_ptr  += sizeof(struct vlan_tag);
+      remaining -= sizeof(struct vlan_tag);
     }
 
-    /* Discard non IP datagram */
+    /* Strict check to ensure we only process IPv4 */
     if (protocol != ETHERTYPE_IP) return;
   }
 
   // --- Layer 3 Parsing (IPv4) ---
-  if (len < sizeof(struct ip)) return;
-  ip_hdr = (struct ip *)bytes;
-
-  ipLen = ip_hdr->ip_hl * 4;
-  if (len < ipLen) return;
-
-  bytes += ipLen;
-  len   -= ipLen;
+  REQUIRE_BYTES(sizeof(struct ip));
+  struct ip *ip_hdr = (struct ip *)data_ptr;
 
   /* Discard non UDP datagram */
   if (ip_hdr->ip_p != IPPROTO_UDP) return;
 
   /* Reject broadcast datagram */
-  if (ip_hdr->ip_dst.s_addr == INADDR_BROADCAST) return;
+  if ((ip_hdr->ip_dst.s_addr == INADDR_BROADCAST) && !ctx->setBroadcast) return;
 
-  // --- Layer 4 Parsing (UDP) ---
-  if (len < sizeof(struct udphdr)) return;
-  udp_hdr = (struct udphdr *)bytes;
-  bytes += sizeof(struct udphdr);
-  len   -= sizeof(struct udphdr);
+  uint32_t ipLen = ip_hdr->ip_hl * 4;
+  REQUIRE_BYTES(ipLen);
+  data_ptr  += ipLen;
+  remaining -= ipLen;
+
+  /* Layer 4 Parsing (UDP) */
+  REQUIRE_BYTES(sizeof(struct udphdr));
+  struct udphdr *udp_hdr = (struct udphdr *)data_ptr;
 
 #ifdef HAVE_STRUCT_UDPHDR_UH_ULEN
-  dataLen = ntohs(udp_hdr->uh_ulen) - sizeof(struct udphdr);
+  uint32_t dataLen = ntohs(udp_hdr->uh_ulen) - sizeof(struct udphdr);
 #else
-  dataLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
+  uint32_t dataLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
 #endif
 
-  /* Discard uncomplete UDP datagram */
-  if (len < dataLen) return;
+  data_ptr  += sizeof(struct udphdr);
+  remaining -= sizeof(struct udphdr);
+
+  /* Final data sanity check */
+  if (remaining < dataLen) return;
 
   /* 2. High-Resolution Timing Logic */
   if (ctx->flood) {
@@ -195,37 +182,41 @@ static void callback_handler(u_char *user,
   }
 
   // --- Asterix Modification (Optional) ---
-  if (ctx->asterixTime) {
+  const u_char *send_ptr = data_ptr;
+  u_char asterix_buf[65535];
+
+  if (ctx->asterixTime && dataLen <= 65535) {
     struct timespec now;
     clock_gettime(CLOCK_REALTIME, &now);
     unsigned int tod = (now.tv_sec % 86400) * 128
       + (now.tv_nsec * 128 / 1000000000L);
+
+    memcpy(asterix_buf, data_ptr, dataLen);
     // Cast away const for payload modification if necessary, or modify fixAsterixTOD signature
-    bytes = fixAsterixTOD(bytes, dataLen, tod);
+    fixAsterixTOD(data_ptr, dataLen, tod);
+    send_ptr = asterix_buf;
   }
 
   // --- Send ---
-  byteCount = sendto(ctx->udpSocket, bytes, dataLen, 0,
-      (struct sockaddr *)&ctx->sockaddr, sizeof(ctx->sockaddr));
-
-  if (byteCount < 0) {
+  if (sendto(ctx->udpSocket, send_ptr, dataLen, 0,
+             (struct sockaddr *)&ctx->sockaddr, sizeof(ctx->sockaddr)) < 0) {
     // Use errno to print clearer error (e.g., Network Unreachable)
     perror("UDP sendto failed");
   }
 }
 
 void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
-  int result;
-
   // Reset loop state variable
   start_loop = 1;
 
   ctx->udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
   if (ctx->udpSocket == -1) {
     perror("UDP Socket failed");
     return;
   }
 
+  /* Set Socket Options */
   if (ctx->setMulticastTTL) {
     u_char ttl = ctx->multicastTTLValue;
     setsockopt(ctx->udpSocket, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
@@ -236,7 +227,7 @@ void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
     setsockopt(ctx->udpSocket, SOL_SOCKET, SO_BROADCAST, &brd, sizeof(brd));
   }
 
-  result = pcap_loop(pcap, -1, callback_handler, (u_char *)ctx);
+  int result = pcap_loop(pcap, -1, callback_handler, (u_char *)ctx);
 
   if (result == -1) {
     pcap_perror(pcap, "Error during pcap_loop\n");
