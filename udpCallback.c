@@ -14,7 +14,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -25,6 +24,14 @@
 #include <pcap/vlan.h>
 
 #include "asterix.h"
+
+// Helper to replace deprecated usleep
+static void nsleep(long usec) {
+  struct timespec ts;
+  ts.tv_sec = usec / 1000000;
+  ts.tv_nsec = (usec % 1000000) * 1000;
+  nanosleep(&ts, NULL);
+}
 
 static int start_loop = 1;
 long int countToFlood = 0;
@@ -60,34 +67,16 @@ void waitBeforeSending(struct timeval actual_delta)
   if (delta_time.tv_sec >= 0) {
     useconds = delta_time.tv_usec + 1000000 * delta_time.tv_sec;
     if (useconds > 0) {
-      int result = usleep(useconds);
-      if (result != 0) {
-        perror("usleep Failed");
-        return;
-      }
+      nsleep(useconds);
     }
-  }
-}
-
-void waitALittle(ReplayCtx *ctx)
-{
-  int result = usleep(ctx->floodTime);
-
-  if (result != 0) {
-    perror("usleep Failed");
-    return;
   }
 }
 
 int waitToLoop(ReplayCtx *ctx)
 {
-  int result = usleep(ctx->loopTime);
+  nsleep(ctx->loopTime);
 
-  if (result != 0) {
-    perror("usleep Failed");
-  }
-
-  return result;
+  return 0;
 }
 
 static void callback_handler(u_char *user,
@@ -186,11 +175,11 @@ static void callback_handler(u_char *user,
 
   /* 2. High-Resolution Timing Logic */
   if (ctx->flood) {
-    waitALittle(ctx);
+    nsleep(ctx->floodTime);
   } else if (ctx->oneByOne) {
     if (countToFlood > 0) {
       countToFlood--;
-      waitALittle(ctx);
+      nsleep(ctx->floodTime);
     } else {
       printf("Press <Enter> to send next datagram ->");
       sResult = fgets(s, sizeof(s), stdin);
