@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
   ReplayCtx ctx;
   memset(&ctx, 0, sizeof(ReplayCtx));
   ctx.pvalue = NULL;
-  ctx.floodTime = 1000;
+  ctx.floodTime = 20000;
   ctx.loopTime  = 1000;
 
   const char *pcapName;
