@@ -85,14 +85,25 @@ static void callback_handler(u_char *user,
   REQUIRE_BYTES(sizeof(struct ip));
   struct ip *ip_hdr = (struct ip *)data_ptr;
 
+  /* Basic Validation */
+  if (ip_hdr->ip_v != 4) return; // Ensure it's actually IPv4
+
   /* Discard non UDP datagram */
   if (ip_hdr->ip_p != IPPROTO_UDP) return;
 
   /* Reject broadcast datagram */
   if ((ip_hdr->ip_dst.s_addr == INADDR_BROADCAST) && !ctx->setBroadcast) return;
 
+  /* Calculate and Validate IP Header Length (including Options) */
   uint32_t ipLen = ip_hdr->ip_hl * 4;
-  REQUIRE_BYTES(ipLen);
+
+  // Must be at least the size of the standard struct
+  if (ipLen < sizeof(struct ip)) return;
+
+  // Must fit within the captured pcap data
+  if (remaining < ipLen) return;
+
+  /* Advance past IP Header (and any options) */
   data_ptr  += ipLen;
   remaining -= ipLen;
 
@@ -101,10 +112,14 @@ static void callback_handler(u_char *user,
   struct udphdr *udp_hdr = (struct udphdr *)data_ptr;
 
 #ifdef HAVE_STRUCT_UDPHDR_UH_ULEN
-  uint32_t dataLen = ntohs(udp_hdr->uh_ulen) - sizeof(struct udphdr);
+  uint32_t udp_total_len = ntohs(udp_hdr->uh_ulen);
 #else
-  uint32_t dataLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
+  uint32_t udp_total_len = ntohs(udp_hdr->len);
 #endif
+
+  // The total length includes the 8-byte UDP header
+  if (udp_total_len < sizeof(struct udphdr)) return;
+  uint32_t dataLen = udp_total_len - sizeof(struct udphdr);
 
   data_ptr  += sizeof(struct udphdr);
   remaining -= sizeof(struct udphdr);
