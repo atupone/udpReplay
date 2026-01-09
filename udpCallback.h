@@ -17,12 +17,12 @@
 
 #pragma once
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <pcap/pcap.h>
 #include <unistd.h>
+
+#define VLEN 16  // Batch size (e.g., 16 packets)
 
 typedef struct {
     int udpSocket;
@@ -42,6 +42,11 @@ typedef struct {
 
     struct timespec start_pcap; // PCAP timestamp of the first packet
     struct timespec start_wall; // Monotonic clock time when replay started
+
+    struct mmsghdr msgs[VLEN];
+    struct iovec iovecs[VLEN];
+    unsigned char buffers[VLEN][65535];
+    int msg_count;
 } ReplayCtx;
 
 extern void replayAll(pcap_t *pcap, ReplayCtx *ctx);

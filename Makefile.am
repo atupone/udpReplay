@@ -17,7 +17,7 @@ liuDepack_SOURCES = \
 blockDepack_SOURCES = \
 	blockDepack.c
 
-AM_CPPFLAGS = -I.
+AM_CPPFLAGS = -I. -D_GNU_SOURCE
 AM_CFLAGS = $(PCAP_CFLAGS) -Wall
 LDADD = $(PCAP_LIBS)
 

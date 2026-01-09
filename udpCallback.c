@@ -43,6 +43,19 @@ int waitToLoop(ReplayCtx *ctx)
   return 0;
 }
 
+static void flush_batch(ReplayCtx *ctx) {
+  if (ctx->msg_count == 0) return;
+
+  // Send the entire batch in ONE system call
+  int retval = sendmmsg(ctx->udpSocket, ctx->msgs, ctx->msg_count, 0);
+
+  if (retval < 0) {
+    perror("sendmmsg failed");
+  }
+
+  ctx->msg_count = 0; // Reset for next batch
+}
+
 static void callback_handler(u_char *user,
     const struct pcap_pkthdr *h,
     const u_char *bytes)
@@ -129,7 +142,26 @@ static void callback_handler(u_char *user,
 
   /* 2. High-Resolution Timing Logic */
   if (ctx->flood) {
-    nsleep(ctx->floodTime);
+    // --- BATCH SENDING LOGIC ---
+    int i = ctx->msg_count;
+
+    // 1. Copy payload to the batch buffer
+    memcpy(ctx->buffers[i], data_ptr, dataLen);
+
+    // 2. Set up the iovec and mmsghdr for this packet
+    ctx->iovecs[i].iov_base = ctx->buffers[i];
+    ctx->iovecs[i].iov_len  = dataLen;
+    ctx->msgs[i].msg_hdr.msg_iov = &ctx->iovecs[i];
+    ctx->msgs[i].msg_hdr.msg_iovlen = 1;
+    ctx->msgs[i].msg_hdr.msg_name = &ctx->sockaddr;
+    ctx->msgs[i].msg_hdr.msg_namelen = sizeof(ctx->sockaddr);
+
+    ctx->msg_count++;
+
+    // 3. If batch is full, send it
+    if (ctx->msg_count == VLEN) {
+      flush_batch(ctx);
+    }
   } else if (ctx->oneByOne) {
     if (countToFlood > 0) {
       countToFlood--;
@@ -265,6 +297,8 @@ void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
     setsockopt(ctx->udpSocket, SOL_SOCKET, SO_BROADCAST, &brd, sizeof(brd));
   }
 
+  ctx->msg_count = 0; // Initialize batch counter
+                      //
   int result = pcap_loop(pcap, -1, callback_handler, (u_char *)ctx);
 
   if (result == -1) {
@@ -273,6 +307,11 @@ void replayAll(pcap_t *pcap, ReplayCtx *ctx) {
     printf("pcap_breakloop() called before any packets were processed.\n");
   } else if (result != 0) {
     printf("Result (%d) from pcap_loop() not foreseen\n", result);
+  }
+
+  // FINAL FLUSH: Send remaining packets that didn't fill a full batch
+  if (ctx->flood) {
+    flush_batch(ctx);
   }
 
   close(ctx->udpSocket);
