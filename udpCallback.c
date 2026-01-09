@@ -85,13 +85,14 @@ static void callback_handler(u_char *user,
 {
   ReplayCtx *ctx = (ReplayCtx *)user;
 
+  // Pointers to headers (Zero-copy approach)
+  struct ether_header *eth_hdr;
+  struct ip *ip_hdr;
+  struct udphdr *udp_hdr;
+  struct vlan_tag *vlan_hdr;
+
   unsigned int caplen = h->caplen;
   unsigned int len    = h->len;
-
-  struct ether_header eth_hdr;
-  struct ip ip_hdr;
-  struct udphdr udp_hdr;
-  struct vlan_tag vlan_hdr;
 
   uint16_t protocol;
 
@@ -108,70 +109,63 @@ static void callback_handler(u_char *user,
   /*
    * No way to do something with truncated packet
    */
-  if (caplen != len)
-    return;
+  if (caplen != len) return;
 
+  // --- Layer 2 Parsing ---
   if (ctx->datalink == DLT_EN10MB) {
-    /* Copy the ethernet header */
-    if (len < sizeof(eth_hdr))
-      return;
-    memcpy(&eth_hdr, bytes, sizeof(eth_hdr));
-    bytes += sizeof(eth_hdr);
-    len   -= sizeof(eth_hdr);
+    if (len < sizeof(struct ether_header)) return;
 
-    protocol = ntohs(eth_hdr.ether_type);
+    eth_hdr = (struct ether_header *)bytes;
+    bytes += sizeof(struct ether_header);
+    len   -= sizeof(struct ether_header);
+
+    protocol = ntohs(eth_hdr->ether_type);
 
     /* Check for VLAN data */
-    if (protocol == ETHERTYPE_VLAN)
-    {
-      /* Copy the vlan header */
-      if (len < sizeof(vlan_hdr))
-        return;
-      memcpy(&vlan_hdr, bytes, sizeof(vlan_hdr));
-      bytes += sizeof(vlan_hdr);
-      len   -= sizeof(vlan_hdr);
+    if (protocol == ETHERTYPE_VLAN) {
+      if (len < sizeof(vlan_hdr)) return;
+      vlan_hdr = (struct vlan_tag*)bytes;
+      bytes += sizeof(struct vlan_tag);
+      len   -= sizeof(struct vlan_tag);
 
-      protocol = ntohs(vlan_hdr.vlan_tci);
+      protocol = ntohs(vlan_hdr->vlan_tci);
     }
 
     /* Discard non IP datagram */
-    if (protocol != ETHERTYPE_IP)
-      return;
+    if (protocol != ETHERTYPE_IP) return;
   }
 
-  /* Copy the IPv4 header */
-  if (len < sizeof(ip_hdr))
-    return;
-  memcpy(&ip_hdr, bytes, sizeof(ip_hdr));
-  ipLen = ip_hdr.ip_hl * 4;
-  if (len < ipLen)
-    return;
+  // --- Layer 3 Parsing (IPv4) ---
+  if (len < sizeof(struct ip)) return;
+  ip_hdr = (struct ip *)bytes;
+
+  ipLen = ip_hdr->ip_hl * 4;
+  if (len < ipLen) return;
+
   bytes += ipLen;
   len   -= ipLen;
 
   /* Discard non UDP datagram */
-  if (ip_hdr.ip_p != IPPROTO_UDP)
-    return;
+  if (ip_hdr->ip_p != IPPROTO_UDP) return;
 
   /* Reject broadcast datagram */
-  if (ip_hdr.ip_dst.s_addr == INADDR_BROADCAST)
-    return;
+  if (ip_hdr->ip_dst.s_addr == INADDR_BROADCAST) return;
 
   /* Copy the UDP header */
-  if (len < sizeof(udp_hdr))
-    return;
-  memcpy(&udp_hdr, bytes, sizeof(udp_hdr));
-  bytes += sizeof(udp_hdr);
-  len   -= sizeof(udp_hdr);
+  // --- Layer 4 Parsing (UDP) ---
+  if (len < sizeof(struct udphdr)) return;
+  udp_hdr = (struct udphdr *)bytes;
+  bytes += sizeof(struct udphdr);
+  len   -= sizeof(struct udphdr);
 
   /* Discard uncomplete UDP datagram */
 #ifdef HAVE_STRUCT_UDPHDR_UH_ULEN
-  dataLen = ntohs(udp_hdr.uh_ulen) - sizeof(udp_hdr);
+  dataLen = ntohs(udp_hdr->uh_ulen) - sizeof(struct udphdr);
 #else
-  dataLen = ntohs(udp_hdr.len) - sizeof(udp_hdr);
+  dataLen = ntohs(udp_hdr->len) - sizeof(struct udphdr);
 #endif
-  if (len < dataLen)
-    return;
+
+  if (len < dataLen) return;
 
   /* 2. High-Resolution Timing Logic */
   if (ctx->flood) {
@@ -228,12 +222,12 @@ static void callback_handler(u_char *user,
 
   /* Set destination */
   if (!ctx->dvalue)
-    ctx->sockaddr.sin_addr.s_addr = ip_hdr.ip_dst.s_addr;
+    ctx->sockaddr.sin_addr.s_addr = ip_hdr->ip_dst.s_addr;
   if (!ctx->pvalue) {
 #ifdef HAVE_STRUCT_UDPHDR_UH_DPORT
-    ctx->sockaddr.sin_port = udp_hdr.uh_dport;
+    ctx->sockaddr.sin_port = udp_hdr->uh_dport;
 #else
-    ctx->sockaddr.sin_port = udp_hdr.dest;
+    ctx->sockaddr.sin_port = udp_hdr->dest;
 #endif
   }
 
