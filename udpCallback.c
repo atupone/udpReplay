@@ -22,6 +22,7 @@
 #include <net/ethernet.h>
 #include <time.h>
 #include <pcap/vlan.h>
+#include <errno.h>
 
 #include "asterix.h"
 
@@ -50,10 +51,22 @@ static void flush_batch(ReplayCtx *ctx) {
   int retval = sendmmsg(ctx->udpSocket, ctx->msgs, ctx->msg_count, 0);
 
   if (retval < 0) {
-    perror("sendmmsg failed");
+    // ENOBUFS means the kernel's transmit queue is full
+    if (errno == ENOBUFS) {
+      nsleep(100); // Wait 100us for the queue to drain and try again or just drop
+    } else {
+      perror("sendmmsg failed");
+    }
   }
 
+  // Clear the count immediately
   ctx->msg_count = 0; // Reset for next batch
+
+  // Throttle: Put the delay INSIDE the flush logic
+  // This protects the NIC from being overwhelmed by back-to-back batches
+  if (ctx->flood && ctx->floodTime > 0) {
+    nsleep(ctx->floodTime);
+  }
 }
 
 static void callback_handler(u_char *user,
